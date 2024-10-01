@@ -46,6 +46,8 @@ void list_directory(const char *path, bool show_all, bool long_format) {
         return;
     }
 
+    char full_path[1024];  // Declare full_path here
+
     while ((entry = readdir(dir)) != NULL) {
         if (!show_all && entry->d_name[0] == '.') continue;
 
@@ -82,8 +84,21 @@ void list_directory(const char *path, bool show_all, bool long_format) {
             char time[40];
             strftime(time, 40, "%b %d %H:%M", localtime(&(files[i].st.st_mtime)));
 
-            const char* owner_name = (pw != NULL) ? pw->pw_name: "unknow";
-            const char* group_name = (gr != NULL) ? pw->pw_name: "unknow";
+            const char* owner_name = (pw != NULL) ? pw->pw_name : uid;
+            const char* group_name = (gr != NULL) ? pw->pw_name : gid;
+
+            // char owner_name[256], group_name[256];
+            // if (pw != NULL) {
+            //     strncpy(owner_name, pw->pw_name, sizeof(owner_name));
+            // } else {
+            //     snprintf(owner_name, sizeof(owner_name), "%u", uid);
+            // }
+
+            // if (gr != NULL) {
+            //     strncpy(group_name, gr->gr_name, sizeof(group_name));
+            // } else {
+            //     snprintf(group_name, sizeof(group_name), "%u", gid);
+            // }
 
             // Выводим информацию о файле
             printf("%s%s%s%s%s%s%s%s%s%s %lu %5s %5s %lld %s ", 
@@ -110,10 +125,22 @@ void list_directory(const char *path, bool show_all, bool long_format) {
             } else if (S_ISREG(files[i].st.st_mode) && (files[i].st.st_mode & S_IXUSR)) {
                 printf("\033[1;32m%s\033[0m\n", files[i].name);  // Зеленый для исполняемых файлов
             } else if (files[i].is_symlink) {
-                printf("\033[1;36m%s\033[0m\n", files[i].name);  // Бирюзовый для символических ссылок
+                printf("\033[1;36m%s\033[0m", files[i].name);  // Бирюзовый для символических ссылок
+                char target[1024];
+                ssize_t len = readlink(full_path, target, sizeof(target) - 1);
+                if (len != -1) {
+                    target[len] = '\0';
+                    printf(" -> %s\n", target);
+                } else {
+                    perror("readlink");
+                }
+
             } else {
                 printf("%s\n", files[i].name);  // Обычный файл без выделения
             }
+
+    
+
         } else {
             // Изменяем цвета для короткого формата
             if (S_ISDIR(files[i].st.st_mode)) {
