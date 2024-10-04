@@ -46,12 +46,16 @@ void list_directory(const char *path, bool show_all, bool long_format) {
         return;
     }
 
-    char full_path[1024];  // Declare full_path here
+    char full_path[1024];  
+
+    int max_nlink_len = 0;
+    int max_owner_len = 0;
+    int max_group_len = 0;
+    int max_size_len = 0;
 
     while ((entry = readdir(dir)) != NULL) {
         if (!show_all && entry->d_name[0] == '.') continue;
 
-        char full_path[1024];
         snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
 
         struct stat file_stat;
@@ -64,6 +68,19 @@ void list_directory(const char *path, bool show_all, bool long_format) {
         total_blocks += file_stat.st_blocks;
         strncpy(files[count].name, entry->d_name, sizeof(files[count].name));
         files[count].st = file_stat;
+        
+        // Определение максимальной длины для выравнивания столбцов
+        max_nlink_len = (snprintf(NULL, 0, "%lu", (unsigned long)file_stat.st_nlink) > max_nlink_len) 
+                         ? snprintf(NULL, 0, "%lu", (unsigned long)file_stat.st_nlink) : max_nlink_len;
+
+        struct passwd *pw = getpwuid(file_stat.st_uid);
+        struct group *gr = getgrgid(file_stat.st_gid);
+        max_owner_len = (pw && strlen(pw->pw_name) > max_owner_len) ? strlen(pw->pw_name) : max_owner_len;
+        max_group_len = (gr && strlen(gr->gr_name) > max_group_len) ? strlen(gr->gr_name) : max_group_len;
+
+        max_size_len = (snprintf(NULL, 0, "%lld", (long long)file_stat.st_size) > max_size_len) 
+                        ? snprintf(NULL, 0, "%lld", (long long)file_stat.st_size) : max_size_len;
+        
         count++;
     }
 
@@ -84,24 +101,21 @@ void list_directory(const char *path, bool show_all, bool long_format) {
             char time[40];
             strftime(time, 40, "%b %d %H:%M", localtime(&(files[i].st.st_mtime)));
 
-            const char* owner_name = (pw != NULL) ? pw->pw_name : uid;
-            const char* group_name = (gr != NULL) ? pw->pw_name : gid;
+            const char* owner_name = (pw != NULL) ? pw->pw_name : "";
+            const char* group_name = (gr != NULL) ? pw->pw_name : "";
 
-            // char owner_name[256], group_name[256];
-            // if (pw != NULL) {
-            //     strncpy(owner_name, pw->pw_name, sizeof(owner_name));
-            // } else {
-            //     snprintf(owner_name, sizeof(owner_name), "%u", uid);
-            // }
-
-            // if (gr != NULL) {
-            //     strncpy(group_name, gr->gr_name, sizeof(group_name));
-            // } else {
-            //     snprintf(group_name, sizeof(group_name), "%u", gid);
-            // }
+            char uid_str[32], gid_str[32];
+            if (pw == NULL) {
+                snprintf(uid_str, sizeof(uid_str), "%u", uid);
+                owner_name = uid_str;
+            }
+            if (gr == NULL) {
+                snprintf(gid_str, sizeof(gid_str), "%u", gid);
+                group_name = gid_str;
+            }
 
             // Выводим информацию о файле
-            printf("%s%s%s%s%s%s%s%s%s%s %lu %5s %5s %lld %s ", 
+            printf("%s%s%s%s%s%s%s%s%s%s %*lu %-*s %-*s %*lld %s ",
                 (S_ISDIR(files[i].st.st_mode)) ? "d" : (files[i].is_symlink ? "l" : "-"),
                 (files[i].st.st_mode & S_IRUSR) ? "r" : "-",
                 (files[i].st.st_mode & S_IWUSR) ? "w" : "-",
@@ -112,11 +126,11 @@ void list_directory(const char *path, bool show_all, bool long_format) {
                 (files[i].st.st_mode & S_IROTH) ? "r" : "-",
                 (files[i].st.st_mode & S_IWOTH) ? "w" : "-",
                 (files[i].st.st_mode & S_IXOTH) ? "x" : "-",
-                (unsigned long)files[i].st.st_nlink,
-                owner_name,
-                group_name,
-                (long long)files[i].st.st_size,
-                time
+                max_nlink_len, (unsigned long)files[i].st.st_nlink,  // Ссылки
+                max_owner_len, owner_name,  // Имя владельца
+                max_group_len, group_name,  // Имя группы
+                max_size_len, (long long)files[i].st.st_size,  // Размер
+                time  // Время
             );
 
             // Меняем цвет только для названия файла
