@@ -3,46 +3,47 @@
 #include <string.h>     
 
 void print_highlighted(const char *line, const char *pattern) {
-    const char *ptr = line; // текущая позицию в строке
-    const char *match;      // для хранения адреса найденного совпадения
+    const char *ptr = line; // current position in the string
+    const char *match;      // to store the address of a match
 
-    // пока есть совпадения в строке
+    // while there are matches in the string
     while ((match = strstr(ptr, pattern)) != NULL) {
-        // Печатаем часть строки до найденного совпадения
+        // Print the part of the string before the match
         fwrite(ptr, 1, match - ptr, stdout);
-        // Печатаем найденное совпадение с красной подсветкой
+        // Print the matched part with red highlighting
         printf("\033[1;31m%.*s\033[0m", (int)strlen(pattern), match);
-        // Передвигаем указатель на конец совпадения, чтобы продолжить поиск в остальной части строки
+        // Move the pointer to the end of the match to continue searching the rest of the string
         ptr = match + strlen(pattern);
     }
-    // Печатаем остаток строки после последнего найденного совпадения
+    // Print the remaining part of the string after the last match
     printf("%s", ptr);
 }
 
 void grep_file(FILE *file, const char *pattern) {
+    char line[1024]; // Declare the line variable
 
     while (fgets(line, sizeof(line), file) != NULL) {
-        if (strstr(line, pattern) != NULL) {// Проверяем, содержит ли строка искомый шаблон
+        if (strstr(line, pattern) != NULL) { // Check if the line contains the search pattern
             print_highlighted(line, pattern);
         }
     }
 }
 
-// Главная функция программы
+// Main function of the program
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Usage: %s pattern [file]\n", argv[0]);
         return 1;
     }
 
-    // Сохраняем шаблон для поиска
+    // Store the search pattern
     const char *pattern = argv[1];
 
-    // Если передан только шаблон, читаем из стандартного ввода
+    // If only the pattern is provided, read from standard input
     if (argc == 2) {
-        grep_file(stdin, pattern); // Вызываем функцию для чтения из stdin
+        grep_file(stdin, pattern); // Call the function to read from stdin
     } else {
-        // Если указан файл, открываем его для чтения
+        // If a file is specified, open it for reading
         FILE *file = fopen(argv[2], "r"); 
         if (!file) { 
             perror("fopen"); 
