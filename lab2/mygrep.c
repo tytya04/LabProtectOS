@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Store the search pattern
     const char *pattern = argv[1];
 
     if (argc == 2) {
