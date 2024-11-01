@@ -8,17 +8,15 @@
 #include <time.h>
 #include <stdbool.h>
 
-// Структура для хранения информации о файле
 typedef struct {
-	struct stat fileStat; // Информация о файле (размер, права доступа и т.д.)
+	struct stat fileStat; // Информация о файле
 	char fileName[20];    // Имя файла
-	time_t time;          // Время добавления файла в архив
+	time_t time;          // Время добавления файла
 } fileInfo;
-
 
 int createArchive(char *filename) {
 	int archive = open(filename, O_WRONLY);
-	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Права доступа
+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 
 	if (archive == -1) { archive = creat(filename, mode); }
 	close(archive);
@@ -32,13 +30,12 @@ int readArchive(char *archname) {
 	size_t count = 0;
 	while (1) {
 		fileInfo a;
-		if (!read(archive, &a, sizeof(fileInfo))) break; // Чтение информации о файле
+		if (!read(archive, &a, sizeof(fileInfo))) break;
 
-		// Вывод информации о файле
 		printf("Имя файла: %s\n", a.fileName);
 		printf("Вес файла: %ld\n", a.fileStat.st_size);
 		printf("Время добавления в архив: %s\n", ctime(&a.time));
-		lseek(archive, a.fileStat.st_size, SEEK_CUR); // Пропуск содержимого файла
+		lseek(archive, a.fileStat.st_size, SEEK_CUR);
 		count++;
 	}
 	printf("Всего файлов в архиве: %ld\n", count);
@@ -47,90 +44,86 @@ int readArchive(char *archname) {
 }
 
 int addFile(char *archname, char *filename) {
-    if (strcmp(archname, filename) == 0) {
-        printf("Архив не может архивировать сам себя\n");
-        return 1;
-    }
+	if (strcmp(archname, filename) == 0) {
+		printf("Архив не может архивировать сам себя\n");
+		return 1;
+	}
 
-    int archive = open(archname, O_RDONLY);
-    if (archive == -1) return 1;
+	int archive = open(archname, O_RDONLY);
+	if (archive == -1) return 1;
 
-    int file = open(filename, O_RDONLY);
-    if (file == -1) return 1;
+	int file = open(filename, O_RDONLY);
+	if (file == -1) return 1;
 
-    bool fileExist = false;
-    fileInfo a;
+	bool fileExist = false;
+	fileInfo a;
 
-    // Проверка на существование файла в архиве
-    while (read(archive, &a, sizeof(fileInfo)) == sizeof(fileInfo)) {
-        if (strcmp(a.fileName, filename) == 0) {
-            fileExist = true;
-            break;
-        }
-        lseek(archive, a.fileStat.st_size, SEEK_CUR); // Пропуск содержимого файла
-    }
-    close(archive);
+	while (read(archive, &a, sizeof(fileInfo)) == sizeof(fileInfo)) {
+		if (strcmp(a.fileName, filename) == 0) {
+			fileExist = true;
+			break;
+		}
+		lseek(archive, a.fileStat.st_size, SEEK_CUR);
+	}
+	close(archive);
 
-    if (fileExist) {
-        printf("Файл %s уже находится в архиве\n", filename);
-        close(file);
-        return 1;
-    }
+	if (fileExist) {
+		printf("Файл %s уже находится в архиве\n", filename);
+		close(file);
+		return 1;
+	}
 
-    archive = open(archname, O_WRONLY | O_APPEND);
-    if (archive == -1) return 1;
+	archive = open(archname, O_WRONLY | O_APPEND);
+	if (archive == -1) return 1;
 
-    struct stat file_info;
-    if (stat(filename, &file_info) != 0) return 1;
+	struct stat file_info;
+	if (stat(filename, &file_info) != 0) return 1;
 
-    time_t now;
-    time(&now);
+	time_t now;
+	time(&now);
 
-    fileInfo newFileInfo;
-    strncpy(newFileInfo.fileName, filename, sizeof(newFileInfo.fileName) - 1);
-    newFileInfo.fileName[sizeof(newFileInfo.fileName) - 1] = '\0';
-    newFileInfo.fileStat = file_info;
-    newFileInfo.time = now;
+	fileInfo newFileInfo;
+	strncpy(newFileInfo.fileName, filename, sizeof(newFileInfo.fileName) - 1);
+	newFileInfo.fileName[sizeof(newFileInfo.fileName) - 1] = '\0';
+	newFileInfo.fileStat = file_info;
+	newFileInfo.time = now;
 
-    // Записываем информацию о файле в архив
-    if (write(archive, &newFileInfo, sizeof(fileInfo)) != sizeof(fileInfo)) {
-        printf("Ошибка записи информации о файле %s в архив\n", filename);
-        close(archive);
-        close(file);
-        return 1;
-    }
+	if (write(archive, &newFileInfo, sizeof(fileInfo)) != sizeof(fileInfo)) {
+		printf("Ошибка записи информации о файле %s в архив\n", filename);
+		close(archive);
+		close(file);
+		return 1;
+	}
 
-    char *bufFile = malloc(file_info.st_size);
-    if (read(file, bufFile, file_info.st_size) != file_info.st_size) {
-        printf("Ошибка чтения содержимого файла %s\n", filename);
-        free(bufFile);
-        close(archive);
-        close(file);
-        return 1;
-    }
+	char *bufFile = malloc(file_info.st_size);
+	if (read(file, bufFile, file_info.st_size) != file_info.st_size) {
+		printf("Ошибка чтения содержимого файла %s\n", filename);
+		free(bufFile);
+		close(archive);
+		close(file);
+		return 1;
+	}
 
-    if (write(archive, bufFile, file_info.st_size) != file_info.st_size) {
-        printf("Ошибка записи содержимого файла %s в архив\n", filename);
-        free(bufFile);
-        close(archive);
-        close(file);
-        return 1;
-    }
+	if (write(archive, bufFile, file_info.st_size) != file_info.st_size) {
+		printf("Ошибка записи содержимого файла %s в архив\n", filename);
+		free(bufFile);
+		close(archive);
+		close(file);
+		return 1;
+	}
 
-    free(bufFile);
-    close(archive);
-    close(file);
-    return 0;
+	free(bufFile);
+	close(archive);
+	close(file);
+	return 0;
 }
 
 int deleteFile(char *archname, char *filename) {
-	// Создание временного архива для копирования файлов
 	createArchive(".bufArch");
-
 	int bufArch = open(".bufArch", O_WRONLY);
 	int archive = open(archname, O_RDONLY);
 
-	bool fileExist = 1;
+	bool fileExist = true;
 	if (archive == -1) return 1;
 
 	while (1) {
@@ -142,13 +135,12 @@ int deleteFile(char *archname, char *filename) {
 		char bufFile[a->fileStat.st_size];
 		read(archive, bufFile, a->fileStat.st_size);
 
-		// Если текущий файл не тот, что удаляем, записываем его в временный архив
 		if (strcmp(a->fileName, filename)) {
 			write(bufArch, a, sizeof(fileInfo));
 			lseek(bufArch, sizeof(fileInfo), SEEK_CUR);
 			write(bufArch, &bufFile, a->fileStat.st_size);
 		} else {
-			fileExist = 0;
+			fileExist = false;
 		}
 
 		free(buf);
@@ -164,157 +156,156 @@ int deleteFile(char *archname, char *filename) {
 }
 
 int extractFile(char *archname, char *filename) {
-    int archive = open(archname, O_RDONLY);
-    if (archive == -1) return 1;
+	int archive = open(archname, O_RDONLY);
+	if (archive == -1) return 1;
 
-    fileInfo a;
-    bool fileExist = false;
+	fileInfo a;
+	bool fileExist = false;
 
-    // Поиск файла в архиве
-    while (read(archive, &a, sizeof(fileInfo)) == sizeof(fileInfo)) {
-        if (strcmp(a.fileName, filename) == 0) {
-            fileExist = true;
-            break;
-        }
-        lseek(archive, a.fileStat.st_size, SEEK_CUR); // Пропуск содержимого файла
-    }
+	while (read(archive, &a, sizeof(fileInfo)) == sizeof(fileInfo)) {
+		if (strcmp(a.fileName, filename) == 0) {
+			fileExist = true;
+			break;
+		}
+		lseek(archive, a.fileStat.st_size, SEEK_CUR);
+	}
 
-    if (!fileExist) {
-        printf("Файл %s не найден в архиве\n", filename);
-        close(archive);
-        return 1;
-    }
+	if (!fileExist) {
+		printf("Файл %s не найден в архиве\n", filename);
+		close(archive);
+		return 1;
+	}
 
-    // Проверка на перезапись, если файл существует
-    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-    char flag;
-    if (access(filename, F_OK) != -1) {
-        printf("Файл %s будет перезаписан. Вы хотите продолжить [y/n]?\n", filename);
-        scanf(" %c", &flag);
-        if (flag == 'n') {
-            close(archive);
-            return 2;
-        }
-    }
+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
+	char flag;
+	if (access(filename, F_OK) != -1) {
+		printf("Файл %s будет перезаписан. Вы хотите продолжить [y/n]?\n", filename);
+		scanf(" %c", &flag);
+		if (flag == 'n') {
+			close(archive);
+			return 2;
+		}
+	}
 
-    // Создание нового файла для извлечения
-    int file = creat(filename, mode);
-    if (file == -1) {
-        printf("Ошибка создания файла %s\n", filename);
-        close(archive);
-        return 1;
-    }
+	int file = creat(filename, mode);
+	if (file == -1) {
+		printf("Ошибка создания файла %s\n", filename);
+		close(archive);
+		return 1;
+	}
 
-    // Чтение содержимого из архива и запись его в файл
-    char *bufFile = malloc(a.fileStat.st_size);
-    if (read(archive, bufFile, a.fileStat.st_size) != a.fileStat.st_size) {
-        printf("Ошибка извлечения содержимого файла %s\n", filename);
-        free(bufFile);
-        close(archive);
-        close(file);
-        return 1;
-    }
+	char *bufFile = malloc(a.fileStat.st_size);
+	if (read(archive, bufFile, a.fileStat.st_size) != a.fileStat.st_size) {
+		printf("Ошибка извлечения содержимого файла %s\n", filename);
+		free(bufFile);
+		close(archive);
+		close(file);
+		return 1;
+	}
 
-    if (write(file, bufFile, a.fileStat.st_size) != a.fileStat.st_size) {
-        printf("Ошибка записи содержимого файла %s на диск\n", filename);
-        free(bufFile);
-        close(archive);
-        close(file);
-        return 1;
-    }
+	if (write(file, bufFile, a.fileStat.st_size) != a.fileStat.st_size) {
+		printf("Ошибка записи содержимого файла %s на диск\n", filename);
+		free(bufFile);
+		close(archive);
+		close(file);
+		return 1;
+	}
 
-    free(bufFile);
-    close(file);
-    close(archive);
+	free(bufFile);
+	close(file);
+	close(archive);
+	chmod(filename, a.fileStat.st_mode);
 
-    // Установка прав доступа на извлечённый файл
-    chmod(filename, a.fileStat.st_mode);
+	if (deleteFile(archname, filename)) {
+		printf("Ошибка удаления файла %s из архива\n", filename);
+	}
 
-    if (deleteFile(archname, filename)) {
-        printf("Ошибка удаления файла %s из архива\n", filename);
-    }
+	return 0;
+}
 
-    return 0;
+void showArchiveState(char *archname) {
+	int archive = open(archname, O_RDONLY);
+	if (archive == -1) {
+		printf("Архив %s не существует\n", archname);
+		return;
+	}
+
+	size_t count = 0;
+	while (1) {
+		fileInfo a;
+		if (!read(archive, &a, sizeof(fileInfo))) break; // Чтение информации о файле
+
+		// Вывод информации о файле
+		printf("Имя файла: %s\n", a.fileName);
+		printf("Вес файла: %ld\n", a.fileStat.st_size);
+		printf("Время добавления в архив: %s\n", ctime(&a.time));
+		lseek(archive, a.fileStat.st_size, SEEK_CUR); // Пропуск содержимого файла
+		count++;
+	}
+	printf("Всего файлов в архиве: %ld\n", count);
+	close(archive);
 }
 
 int main(int argc, char *argv[]) {
-	bool cFlag = false; // Создать архив
-	bool dFlag = false; // Удалить ф
-	bool eFlag = false;	// Извлечь ф
-	bool iFlag = false; // Добавить ф
-	bool hFlag = false; // Вывод помощи
-	bool rFlag = false; // Вывод информации архива
-
-	if (argc <= 1) hFlag = true;
-
-	char *archive = argv[1];
-
-	int opt;
-	while ((opt = getopt(argc - 1, argv + 1, "cdeihr")) != -1) {
-		switch (opt) {
-			case 'c': cFlag = true; break;
-			case 'd': dFlag = true; break;
-			case 'e': eFlag = true; break;
-			case 'i': iFlag = true; break;
-			case 'h': hFlag = true; break;
-			case 'r': rFlag = true; break;
-			default: hFlag = true;
-		}
-	}
-
-	if (hFlag) {
-		printf("Примитивный архиватор\n");
-		printf("-c создать архив\n  ./archiver -c archive_name\n");
-		printf("-d удалить файл из архива\n  ./archiver -d archive_name file_name\n");
-		printf("-e извлечь файл из архива\n  ./archiver -e archive_name file_name\n");
-		printf("-i добавить файл в архив\n  ./archiver -i archive_name file_name\n");
-		printf("-r показать содержимое архива\n  ./archiver -r archive_name\n");
-		printf("-h помощь\n");
+	if (argc < 3) { // Проверка на минимальное количество аргументов
+		printf("Использование:\n");
+		printf("./archiver archive_name -i file_name\n");
+		printf("./archiver archive_name -e file_name\n");
+		printf("./archiver archive_name -d file_name\n");
+		printf("./archiver archive_name -r\n");
+		printf("./archiver archive_name -h\n");
 		return 0;
 	}
 
-	// Если установлен флаг создания архива
-	if (cFlag) {
-		for (; optind < argc; optind++) {
-			if (!createArchive(argv[optind])) 
-				printf("Архив %s создан\n", argv[optind]);
-			else 
-				printf("Ошибка создания архива %s\n", argv[optind]);
+	char *archive = argv[1]; // Название архива
+	char *flag = argv[2]; // Флаг операции
+
+	if (strcmp(flag, "-c") == 0) {
+		// Создание архива
+		if (createArchive(archive) == 0) {
+			printf("Архив %s создан\n", archive);
+		} else {
+			printf("Ошибка создания архива %s\n", archive);
 		}
-	// Если установлен флаг добавления файла
-	} else if (iFlag) {
-		char *archive = argv[optind++];
-		for (; optind < argc; optind++) {
-			if (!addFile(archive, argv[optind])) 
-				printf("Файл %s добавлен в архив %s\n", argv[optind], archive); 
-			else 
-				printf("Ошибка добавления файла %s\n", argv[optind]);
+	} else if (strcmp(flag, "-i") == 0) {
+		for (int i = 3; i < argc; i++) {
+			if (addFile(archive, argv[i]) == 0) {
+				printf("Файл %s добавлен в архив %s\n", argv[i], archive);
+			} else {
+				printf("Ошибка добавления файла %s\n", argv[i]);
+			}
 		}
-	// Если установлен флаг удаления файла
-	} else if (dFlag) {
-		char *archive = argv[optind++];
-		for (; optind < argc; optind++) {
-			if (!deleteFile(archive, argv[optind])) 
-				printf("Файл %s удалён из архива %s\n", argv[optind], archive); 
-			else 
-				printf("Ошибка удаления файла %s\n", argv[optind]);
+	} else if (strcmp(flag, "-d") == 0) {
+		for (int i = 3; i < argc; i++) {
+			if (deleteFile(archive, argv[i]) == 0) {
+				printf("Файл %s удалён из архива %s\n", argv[i], archive);
+			} else {
+				printf("Ошибка удаления файла %s\n", argv[i]);
+			}
 		}
-	// Если установлен флаг извлечения файла
-	} else if (eFlag) {
-		char *archive = argv[optind++];
-		for (; optind < argc; optind++) {
-			size_t state = extractFile(archive, argv[optind]);
-			if (state == 0) 
-				printf("Файл %s извлечён из архива %s\n", argv[optind], archive); 
-			else if (state == 1) 
-				printf("Ошибка извлечения файла %s\n", argv[optind]);
-			else 
-				printf("Файл %s не будет извлечён\n", argv[optind]);
+	} else if (strcmp(flag, "-e") == 0) {
+		for (int i = 3; i < argc; i++) {
+			if (extractFile(archive, argv[i]) == 0) {
+				printf("Файл %s извлечён из архива %s\n", argv[i], archive);
+			} else {
+				printf("Ошибка извлечения файла %s\n", argv[i]);
+			}
 		}
-	// Если установлен флаг чтения содержимого архива
-	} else if (rFlag) {
-		if (readArchive(argv[optind])) 
-			printf("Архив %s не существует\n", argv[optind]);
+	} else if (strcmp(flag, "-r") == 0) {
+		if (readArchive(archive) != 0) {
+			printf("Архив %s не существует\n", archive);
+		}
+	} else if (strcmp(flag, "-h") == 0) {
+		printf("Примитивный архиватор\n");
+		printf("-c создать архив\n  ./archiver archive_name -c\n");
+		printf("-d удалить файл из архива\n  ./archiver archive_name -d file_name\n");
+		printf("-e извлечь файл из архива\n  ./archiver archive_name -e file_name\n");
+		printf("-i добавить файл в архив\n  ./archiver archive_name -i file_name\n");
+		printf("-r показать содержимое архива\n  ./archiver archive_name -r\n");
+		printf("-h помощь\n");
+	} else {
+		printf("Неизвестный флаг: %s\n", flag);
 	}
+
 	return 0;
 }
