@@ -47,67 +47,82 @@ int readArchive(char *archname) {
 }
 
 int addFile(char *archname, char *filename) {
-	if (strcmp(archname, filename) == 0) { // не является ли файл самим архивом
-		printf("Архив не может архивировать сам себя\n");
-		return 1;
-	}
+    if (strcmp(archname, filename) == 0) {
+        printf("Архив не может архивировать сам себя\n");
+        return 1;
+    }
 
-	int archive = open(archname, O_RDONLY);
-	if (archive == -1) return 1;
+    int archive = open(archname, O_RDONLY);
+    if (archive == -1) return 1;
 
-	int file = open(filename, O_RDONLY);
-	if (file == -1) return 1;
+    int file = open(filename, O_RDONLY);
+    if (file == -1) return 1;
 
-	bool fileExist = 0;
-	while (1) {
-		char *buf = malloc(sizeof(fileInfo));
-		if (!read(archive, buf, sizeof(fileInfo))) break; // Чтение информации о файле
-		fileInfo *a = (fileInfo*)(buf);
+    bool fileExist = false;
+    fileInfo a;
 
-		// существует ли файл в архиве
-		if (strcmp(a->fileName, filename) == 0) { fileExist = 1; }
+    // Проверка на существование файла в архиве
+    while (read(archive, &a, sizeof(fileInfo)) == sizeof(fileInfo)) {
+        if (strcmp(a.fileName, filename) == 0) {
+            fileExist = true;
+            break;
+        }
+        lseek(archive, a.fileStat.st_size, SEEK_CUR); // Пропуск содержимого файла
+    }
+    close(archive);
 
-		lseek(archive, sizeof(fileInfo), SEEK_CUR); // Пропуск содержимого файла
-		char bufFile[a->fileStat.st_size];
-		read(archive, bufFile, a->fileStat.st_size);
+    if (fileExist) {
+        printf("Файл %s уже находится в архиве\n", filename);
+        close(file);
+        return 1;
+    }
 
-		free(buf);
-	}
+    // Открываем архив для записи и добавляем новый файл
+    archive = open(archname, O_WRONLY | O_APPEND);
+    if (archive == -1) return 1;
 
-	if (fileExist) { // Если файл уже существует в архиве, выводим сообщение
-		close(archive);
-		printf("Файл %s уже находится в архиве\n", filename);
-		return 1;	
-	}
-	
-	archive = open(archname, O_WRONLY); // Переоткрываем архив для записи
+    struct stat file_info;
+    if (stat(filename, &file_info) != 0) return 1;
 
-	fileInfo fileinf;
-	struct stat file_info;
-	if (stat(filename, &file_info) != 0) return 1;
-
-	time_t now;
+    time_t now;
     time(&now);
 
-	// Заполнение структуры для нового файла
-	strcpy(fileinf.fileName, filename);
-	fileinf.fileStat = file_info;
-	fileinf.time = now;
+    // Заполняем структуру для нового файла
+    fileInfo newFileInfo;
+    strncpy(newFileInfo.fileName, filename, sizeof(newFileInfo.fileName) - 1);
+    newFileInfo.fileName[sizeof(newFileInfo.fileName) - 1] = '\0';
+    newFileInfo.fileStat = file_info;
+    newFileInfo.time = now;
 
-	lseek(archive, 0, SEEK_END); // Переход в конец архива
+    // Записываем информацию о файле и содержимое файла в архив
+    if (write(archive, &newFileInfo, sizeof(fileInfo)) != sizeof(fileInfo)) {
+        printf("Ошибка записи информации о файле %s в архив\n", filename);
+        close(archive);
+        close(file);
+        return 1;
+    }
 
-	write(archive, &fileinf, sizeof(fileInfo)); // Запись информации о файле
+    char *bufFile = malloc(file_info.st_size);
+    if (read(file, bufFile, file_info.st_size) != file_info.st_size) {
+        printf("Ошибка чтения содержимого файла %s\n", filename);
+        free(bufFile);
+        close(archive);
+        close(file);
+        return 1;
+    }
 
-	lseek(archive, sizeof(fileInfo), SEEK_CUR);
-	char bufFile[file_info.st_size];
-	read(file, bufFile, file_info.st_size);
+    if (write(archive, bufFile, file_info.st_size) != file_info.st_size) {
+        printf("Ошибка записи содержимого файла %s в архив\n", filename);
+        free(bufFile);
+        close(archive);
+        close(file);
+        return 1;
+    }
 
-	write(archive, &bufFile, file_info.st_size);
-
-	close(archive);
-	close(file);
-
-	return 0;
+    free(bufFile);
+    close(archive);
+    close(file);
+    return 0;
 }
 
 int deleteFile(char *archname, char *filename) {
@@ -212,7 +227,7 @@ int main(int argc, char *argv[]) {
 	bool eFlag = false;	// Извлечь ф
 	bool iFlag = false; // Добавить ф
 	bool hFlag = false; // Вывод помощи
-	bool rFlag = false; // Вывод информации
+	bool rFlag = false; // Вывод информации архива
 
 	if (argc <= 1) hFlag = true;
 
