@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
 		printf("./archiver archive_name -i file_name\n");
 		printf("./archiver archive_name -e file_name\n");
 		printf("./archiver archive_name -d file_name\n");
-		printf("./archiver archive_name -r\n");
+		printf("./archiver archive_name -s\n");
 		printf("./archiver archive_name -h\n");
 		return 0;
 	}
@@ -291,7 +291,7 @@ int main(int argc, char *argv[]) {
 				printf("Ошибка извлечения файла %s\n", argv[i]);
 			}
 		}
-	} else if (strcmp(flag, "-r") == 0) {
+	} else if (strcmp(flag, "-s") == 0) {
 		if (readArchive(archive) != 0) {
 			printf("Архив %s не существует\n", archive);
 		}
@@ -301,7 +301,7 @@ int main(int argc, char *argv[]) {
 		printf("-d удалить файл из архива\n  ./archiver archive_name -d file_name\n");
 		printf("-e извлечь файл из архива\n  ./archiver archive_name -e file_name\n");
 		printf("-i добавить файл в архив\n  ./archiver archive_name -i file_name\n");
-		printf("-r показать содержимое архива\n  ./archiver archive_name -r\n");
+		printf("-s показать содержимое архива\n  ./archiver archive_name -r\n");
 		printf("-h помощь\n");
 	} else {
 		printf("Неизвестный флаг: %s\n", flag);
