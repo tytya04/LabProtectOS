@@ -247,8 +247,10 @@ int main(int argc, char *argv[]) {
 
 	if (argc <= 1) hFlag = true;
 
+	char *archive = argv[1];
+
 	int opt;
-	while ((opt = getopt(argc, argv, "cdeihr")) != -1) {
+	while ((opt = getopt(argc - 1, argv + 1, "cdeihr")) != -1) {
 		switch (opt) {
 			case 'c': cFlag = true; break;
 			case 'd': dFlag = true; break;
