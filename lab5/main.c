@@ -163,7 +163,6 @@ int deleteFile(char *archname, char *filename) {
 	return fileExist;
 }
 
-// Извлечение
 int extractFile(char *archname, char *filename) {
     int archive = open(archname, O_RDONLY);
     if (archive == -1) return 1;
@@ -230,6 +229,11 @@ int extractFile(char *archname, char *filename) {
 
     // Установка прав доступа на извлечённый файл
     chmod(filename, a.fileStat.st_mode);
+
+    if (deleteFile(archname, filename)) {
+        printf("Ошибка удаления файла %s из архива\n", filename);
+    }
+
     return 0;
 }
 
