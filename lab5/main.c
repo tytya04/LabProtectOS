@@ -8,69 +8,63 @@
 #include <time.h>
 #include <stdbool.h>
 
-// Структура, содержащая информацию о файле в архиве
 typedef struct {
-    struct stat fileStat; // Информация о файле (размер, время последнего изменения и т. д.)
+    struct stat fileStat; // Инфа о файле
     char fileName[20];    // Имя файла
     time_t time;          // Время добавления файла в архив
 } fileInfo;
 
-// Функция для создания архива, если он не существует
 int createArchive(char *filename) {
-    int archive = open(filename, O_WRONLY); // Попытка открыть архив для записи
-    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Устанавливаем права на чтение/запись для владельца и группы, только чтение для остальных
+    int archive = open(filename, O_WRONLY); 
+    mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH; // Устанавливаем права на чтение/запись для владельца и группы
 
     if (archive == -1) { archive = creat(filename, mode); } // Если архив не существует, создаем его
     close(archive);
-    return (archive == -1) ? 1 : 0; // Возвращаем 1, если архив не удалось создать
+    return (archive == -1) ? 1 : 0; 
 }
 
-// Функция для чтения архива и отображения информации о файлах в нем
 int readArchive(char *archname) {
-    int archive = open(archname, O_RDONLY); // Открываем архив для чтения
+    int archive = open(archname, O_RDONLY); 
     if (archive == -1) return 1;
 
     size_t count = 0;
     while (1) {
         fileInfo a;
-        if (!read(archive, &a, sizeof(fileInfo))) break; // Чтение информации о файле из архива
+        if (!read(archive, &a, sizeof(fileInfo))) break; 
 
-        // Выводим информацию о файле
         printf("Имя файла: %s\n", a.fileName);
         printf("Вес файла: %ld\n", a.fileStat.st_size);
         printf("Время добавления в архив: %s\n", ctime(&a.time));
         lseek(archive, a.fileStat.st_size, SEEK_CUR); // Пропускаем содержимое файла
         count++;
     }
-    printf("Всего файлов в архиве: %ld\n", count); // Выводим количество файлов в архиве
+    printf("Всего файлов в архиве: %ld\n", count);
     close(archive);
     return 0;
 }
 
-// Функция для добавления файла в архив
 int addFile(char *archname, char *filename) {
-    if (strcmp(archname, filename) == 0) { // Проверяем, не пытаемся ли добавить сам архив
+    if (strcmp(archname, filename) == 0) { 
         printf("Архив не может архивировать сам себя\n");
         return 1;
     }
 
-    int archive = open(archname, O_RDONLY); // Открываем архив для чтения
+    int archive = open(archname, O_RDONLY); 
     if (archive == -1) {
-        // Создаём архив, если он не существует
         if (createArchive(archname) != 0) {
             printf("Ошибка создания архива %s\n", archname);
             return 1;
         }
-        archive = open(archname, O_RDONLY); // Переоткрываем архив для чтения
+        archive = open(archname, O_RDONLY);
     }
 
-    int file = open(filename, O_RDONLY); // Открываем файл для добавления
+    int file = open(filename, O_RDONLY); 
     if (file == -1) return 1;
 
     bool fileExist = false;
     fileInfo a;
 
-    // Ищем, есть ли уже файл в архиве
+    // есть ли уже файл в архиве
     while (read(archive, &a, sizeof(fileInfo)) == sizeof(fileInfo)) {
         if (strcmp(a.fileName, filename) == 0) {
             fileExist = true;
@@ -110,7 +104,6 @@ int addFile(char *archname, char *filename) {
         return 1;
     }
 
-    // Читаем и записываем содержимое файла в архив
     char *bufFile = malloc(file_info.st_size);
     if (read(file, bufFile, file_info.st_size) != file_info.st_size) {
         printf("Ошибка чтения содержимого файла %s\n", filename);
@@ -134,10 +127,9 @@ int addFile(char *archname, char *filename) {
     return 0;
 }
 
-// Функция для удаления файла из архива
 int deleteFile(char *archname, char *filename) {
     createArchive(".bufArch");
-    int bufArch = open(".bufArch", O_WRONLY); // Создаем временный архив для хранения оставшихся файлов
+    int bufArch = open(".bufArch", O_WRONLY); 
     int archive = open(archname, O_RDONLY);
 
     bool fileExist = true;
@@ -167,13 +159,12 @@ int deleteFile(char *archname, char *filename) {
     close(archive);
     close(bufArch);
 
-    remove(archname); // Удаляем оригинальный архив
+    remove(archname); 
     rename(".bufArch", archname); // Переименовываем временный архив в основной
 
     return fileExist; // Возвращаем успех или ошибку
 }
 
-// Функция для извлечения файла из архива
 int extractFile(char *archname, char *filename) {
     int archive = open(archname, O_RDONLY);
     if (archive == -1) return 1;
@@ -251,8 +242,8 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    char *archive = argv[1]; // Название архива
-    char *flag = argv[2]; // Флаг операции
+    char *archive = argv[1]; 
+    char *flag = argv[2]; 
 
     if (strcmp(flag, "-i") == 0) {
         for (int i = 3; i < argc; i++) {
