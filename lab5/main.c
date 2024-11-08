@@ -50,7 +50,14 @@ int addFile(char *archname, char *filename) {
 	}
 
 	int archive = open(archname, O_RDONLY);
-	if (archive == -1) return 1;
+	if (archive == -1) {
+        // Создаём архив, если он не существует
+        if (createArchive(archname) != 0) {
+            printf("Ошибка создания архива %s\n", archname);
+            return 1;
+        }
+        archive = open(archname, O_RDONLY); // Переоткрываем архив для чтения
+    }
 
 	int file = open(filename, O_RDONLY);
 	if (file == -1) return 1;
@@ -260,14 +267,7 @@ int main(int argc, char *argv[]) {
 	char *archive = argv[1]; // Название архива
 	char *flag = argv[2]; // Флаг операции
 
-	if (strcmp(flag, "-c") == 0) {
-		// Создание архива
-		if (createArchive(archive) == 0) {
-			printf("Архив %s создан\n", archive);
-		} else {
-			printf("Ошибка создания архива %s\n", archive);
-		}
-	} else if (strcmp(flag, "-i") == 0) {
+	if (strcmp(flag, "-i") == 0) {
 		for (int i = 3; i < argc; i++) {
 			if (addFile(archive, argv[i]) == 0) {
 				printf("Файл %s добавлен в архив %s\n", argv[i], archive);
@@ -297,7 +297,6 @@ int main(int argc, char *argv[]) {
 		}
 	} else if (strcmp(flag, "-h") == 0) {
 		printf("Примитивный архиватор\n");
-		printf("-c создать архив\n  ./archiver archive_name -c\n");
 		printf("-d удалить файл из архива\n  ./archiver archive_name -d file_name\n");
 		printf("-e извлечь файл из архива\n  ./archiver archive_name -e file_name\n");
 		printf("-i добавить файл в архив\n  ./archiver archive_name -i file_name\n");
