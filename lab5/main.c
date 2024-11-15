@@ -231,6 +231,27 @@ int extractFile(char *archname, char *filename) {
     return 0;
 }
 
+void showArchiveState(char *archname) {
+	int archive = open(archname, O_RDONLY);
+	if (archive == -1) {
+		printf("Архив %s не существует\n", archname);
+		return;
+	}
+	size_t count = 0;
+	while (1) {
+		fileInfo a;
+		if (!read(archive, &a, sizeof(fileInfo))) break; // Чтение информации о файле
+		// Вывод информации о файле
+		printf("Имя файла: %s\n", a.fileName);
+		printf("Вес файла: %ld\n", a.fileStat.st_size);
+		printf("Время добавления в архив: %s\n", ctime(&a.time));
+		lseek(archive, a.fileStat.st_size, SEEK_CUR); // Пропуск содержимого файла
+		count++;
+	}
+	printf("Всего файлов в архиве: %ld\n", count);
+	close(archive);
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 3) { // Проверка на минимальное количество аргументов
         printf("Использование:\n");
@@ -258,8 +279,8 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(flag, "-h") == 0) {
         printf("Справка по использованию программы:\n");
         printf("Добавить файл: ./archiver archive_name -i file_name\n");
-        printf("Извлечь файл: ./archiver archive_name -e file_name\n");
-        printf("Удалить файл: ./archiver archive_name -d file_name\n");
+        printf("Извлечь файл:  ./archiver archive_name -e file_name\n");
+        printf("Удалить файл:  ./archiver archive_name -d file_name\n");
         printf("Показать состояние архива: ./archiver archive_name -s\n");
     }
     return 0;
