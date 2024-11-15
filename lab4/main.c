@@ -42,7 +42,7 @@ void apply_symbolic_mode(const char *mode_str, mode_t *current_mode) {
         }
 
         if (who_index == 0) { // Если не указано, применяем ко все
-            who[who_index++] = 'a';  м
+            who[who_index++] = 'a'; 
         }
 
         who[who_index] = '\0';
