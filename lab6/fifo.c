@@ -13,9 +13,6 @@ typedef struct {
     time_t time;     
 } message;
 
-/* ~ Дескриптор 0 - на чтение
-   ~ Дескриптор 1 - на запись */
-
 int main() {
     int pid; // место для хранения идентификатора дочернего процесса
     char *fifo_name = "fifoFile"; 
@@ -80,6 +77,8 @@ int main() {
 
         free(pMessage);
         close(write_fd);
+
+        unlink("fifoFile");
     }
     return 0;
 }
