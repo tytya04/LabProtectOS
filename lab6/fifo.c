@@ -8,24 +8,23 @@
 #include <sys/stat.h>
 
 typedef struct {
-    pid_t pid;       // процесс, отправивший сообщение
+    pid_t pid;       
     char text[12];   
     time_t time;     
 } message;
 
 int main() {
-    int pid; // место для хранения идентификатора дочернего процесса
+    int pid; 
     char *fifo_name = "fifoFile"; 
 
-    unlink("fifoFile"); // удаляем ранее существующий FIFO-файл, если он есть
+    unlink("fifoFile"); 
 
-    // именованный канал (FIFO) с правами доступа 0666 (ч/з для всех)
     if (mkfifo(fifo_name, 0666) == -1) {
         printf("mkfifo() failed\n");
         return 1;
     }
 
-    pid = fork();// создаем дочерний процесс
+    pid = fork();
 
     if (pid == -1) {
         printf("fork() failed\n");

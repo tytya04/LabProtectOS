@@ -6,14 +6,14 @@
 #include <time.h>
 
 typedef struct {
-    pid_t pid;       // процесс, отправивший сообщение
+    pid_t pid;      
     char text[12];   
     time_t time;    
 } message;
 
 int main() {
-    int pipe_fd[2]; // место для хранения файловых дескрипторов канала (pipe)
-    int pid;        // переменная для хранения идентификатора дочернего процесса
+    int pipe_fd[2]; 
+    int pid;    
 
     // создаем канал, который будет использоваться для межпроцессного взаимодействия
     if (pipe(pipe_fd)) {
@@ -21,7 +21,7 @@ int main() {
         return 1;
     }
 
-    pid = fork(); // очерний процесс
+    pid = fork();
 
     if (pid == -1) {
         printf("fork() failed\n");
@@ -32,13 +32,12 @@ int main() {
         return 1;
     }
 
-    if (pid == 0) { // этот блок выполняется в дочернем процессе
-        // выделяем память для структуры сообщения, которое будет получено
+    if (pid == 0) { // дочернем процессе
         message* cMessage = malloc(sizeof(message));
 
-        close(pipe_fd[1]); // закрываем конец записи канала, так как дочерний процесс только читает
+        close(pipe_fd[1]);
 
-        read(pipe_fd[0], cMessage, sizeof(message)); // Читаем данные из канала в структуру сообщения
+        read(pipe_fd[0], cMessage, sizeof(message)); 
 
         time_t currentTime = 0;
         time(&currentTime);
@@ -51,7 +50,6 @@ int main() {
 
         return 0;
     } else { // блок в родительском процессе
-        // Выделяем память для структуры сообщения, которое будет отправлено
         message* pMessage = malloc(sizeof(message));
 
         pMessage->pid = getpid();
