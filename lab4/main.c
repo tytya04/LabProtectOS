@@ -15,7 +15,7 @@ mode_t parse_numeric_mode(const char *mode_str) {
 
     // каждый символ - цифрой
     for (int i = 0; i < 3; i++) {
-        if (!isdigit(mode_str[i])) {
+        if (!isdigit(mode_str[i]) || mode_str[i] < '0' || mode_str[i] > '7') {
             fprintf(stderr, "Invalid numeric mode: %s\n", mode_str);
             exit(EXIT_FAILURE);
         }
